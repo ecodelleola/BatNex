@@ -34,6 +34,12 @@
     "asarUnpack": [
       "scripts/**/*"
     ],
+    "publish": [
+      {
+        "provider": "github",
+        "releaseType": "release"
+      }
+    ],
     "extraResources": [
       {
         "from": "vendor/python",

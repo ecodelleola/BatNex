@@ -70,6 +70,22 @@ Bluetooth — the installer bundles a private Python 3.12 + `bleak` runtime
 (`vendor/python`, fetched once with `python scripts/fetch_python.py`),
 so no system Python is required on their machines.
 
+## Publish a release on GitHub
+
+Pushing a version tag builds the installer in the cloud and attaches it
+to a GitHub Release automatically (see `.github/workflows/release.yml`):
+
+```cmd
+cmd /c "git tag v0.1.0 & git push origin v0.1.0"
+```
+
+Keep the tag and the `version` in `package.json` in sync. The workflow
+regenerates everything ignored locally (`node_modules/`, `vendor/`,
+`dist/`) on a `windows-latest` runner. Note the installer is unsigned,
+so Windows SmartScreen will show an "unknown publisher" prompt —
+recipients choose "More info → Run anyway" (a code-signing certificate
+removes this).
+
 ## Project layout
 
 ```

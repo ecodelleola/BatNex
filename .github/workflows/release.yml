@@ -1,0 +1,46 @@
+name: Release installer
+
+# Publish a Windows installer: push a version tag, e.g.
+#   git tag v0.1.0
+#   git push origin v0.1.0
+# A GitHub Release with `BatNex Setup <version>.exe` attached is created
+# automatically (owner/repo are detected from the checkout).
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install JS dependencies
+        run: npm ci
+
+      - name: Fetch private Python runtime
+        run: python scripts/fetch_python.py
+
+      - name: Build renderer assets
+        run: |
+          npm run icons
+          npm run css
+
+      - name: Build + publish installer
+        run: npm run dist -- --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
