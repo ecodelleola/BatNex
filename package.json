@@ -1,0 +1,54 @@
+{
+  "name": "batnex",
+  "private": true,
+  "version": "0.1.0",
+  "description": "BatNex — Bluetooth device battery monitor with system tray icons",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "self-test": "electron . --self-test",
+    "dist": "electron-builder --win",
+    "css": "tailwindcss -i renderer/input.css -o renderer/styles.css --minify",
+    "icons": "node scripts/build_icons.js"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "daisyui": "^5.7.47",
+    "electron": "^44.6.0",
+    "electron-builder": "^26.0.0",
+    "heroicons": "^2.2.0",
+    "tailwindcss": "^4.3.3"
+  },
+  "build": {
+    "appId": "com.batnex.app",
+    "productName": "BatNex",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/",
+      "lib/",
+      "scripts/bt_battery.py",
+      "assets/icon.png",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "scripts/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "vendor/python",
+        "to": "python"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
