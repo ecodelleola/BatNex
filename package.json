@@ -1,7 +1,7 @@
 {
   "name": "batnex",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "BatNex — Bluetooth device battery monitor with system tray icons",
   "main": "main.js",
   "scripts": {
