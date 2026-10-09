@@ -1,4 +1,4 @@
-# BatNex 🔋 (Electron)
+# <img src="assets/icon.png" width="64" alt="Batnex logo"> BatNex 🔋 (Electron)
 
 A simple Electron desktop app for Windows that shows the **battery percentage of
 your Bluetooth devices** — in a window and as **live system-tray icons**
@@ -22,8 +22,16 @@ are PNGs generated in pure JS.
   connected-list poll runs every 15s and battery reads happen only when
   the device set changes (or while some batteries are still unknown, retried
   every 60s). Device *type* comes from the scanner too (name + Bluetooth
-  Class of Device), and each connected device gets a tray icon showing just
-  its battery percentage as digits. No manual refresh needed — though the
+  Class of Device), and each device that reports a battery level gets a tray
+  icon showing the device glyph in its level color (100–80 green, 79–50
+  blue, 49–20 yellow, 19–0 red), maximized to fill the icon. Devices without
+  battery info appear in the window only — no tray icon. Watches, laptops,
+  TVs, printers and styluses are not tracked and never listed.
+  In the window, hovering a truncated name shows it in full, and the type
+  label is a custom dropdown matching the UI: picking a type overrides
+  auto-detection for that device (persisted in the app data folder,
+  applied to window + tray).
+  No manual refresh needed — though the
   header button and tray menu keep one. Right-click any tray icon for
   Show / Refresh / **Run at startup** (checkbox) / Quit — auto-started
   launches begin hidden in the tray.
@@ -98,7 +106,7 @@ lib/
   trayIcon.js         # 64x64 tray icon renderer (pure JS PNG)
 scripts/
   bt_battery.py       # bleak BLE scan + Battery Service reads
-  make_icon.py        # stdlib-only app icon generator
+  convert_logo.py       # favicon.ico -> app icons (transparency fix included)
 assets/               # icon.png / icon.ico
 ```
 

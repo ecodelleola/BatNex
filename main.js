@@ -4,6 +4,7 @@
 // Window + one system-tray icon per device, each showing its battery %.
 
 const path = require("node:path");
+const fs = require("node:fs");
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require("electron");
 
 const { scanDevices } = require("./lib/bluetooth");
@@ -15,6 +16,7 @@ const MAX_DEVICE_TRAYS = 8;
 const QUICK_POLL_MS = 15000; // cheap connected-list check; battery reads only on change
 const BATTERY_RETRY_MS = 60000; // re-attempt unread batteries this often
 const SELF_TEST = process.argv.includes("--self-test");
+const VALID_TYPES = ["headphones", "headset", "earbuds", "speaker", "mouse", "keyboard", "controller", "phone", "bluetooth"];
 
 let win = null;
 let quitting = false;
@@ -22,6 +24,32 @@ let scanning = false;
 let lastDevices = [];
 let lastError = null;
 let lastBatteryAttempt = 0;
+// User-chosen device types (device id -> type), persisted across restarts.
+let typeOverrides = {};
+
+function overridesPath() {
+  return path.join(app.getPath("userData"), "type-overrides.json");
+}
+
+function loadOverrides() {
+  try {
+    const raw = JSON.parse(fs.readFileSync(overridesPath(), "utf8"));
+    typeOverrides = {};
+    for (const [id, type] of Object.entries(raw || {})) {
+      if (typeof id === "string" && VALID_TYPES.includes(type)) typeOverrides[id] = type;
+    }
+  } catch {
+    typeOverrides = {};
+  }
+}
+
+function saveOverrides() {
+  try {
+    fs.writeFileSync(overridesPath(), JSON.stringify(typeOverrides));
+  } catch (e) {
+    console.error(`[tray] saving type overrides failed: ${(e && e.message) || e}`);
+  }
+}
 /** @type {Map<string, Electron.Tray>} */
 const trays = new Map();
 
@@ -30,14 +58,19 @@ function deviceId(address) {
 }
 
 function enrich(raw) {
-  // Device type comes from the scanner (name + Bluetooth Class of Device).
-  const type = raw.deviceType || "bluetooth";
+  // Device type comes from the scanner (name + Bluetooth Class of Device),
+  // unless the user overrode it. baseType preserves the auto-detected value
+  // so overrides never stack and a cleared override restores it.
+  const id = deviceId(raw.address);
+  const baseType = raw.deviceType || "bluetooth";
+  const type = typeOverrides[id] || baseType;
   const s = styleFor(type);
   return {
-    id: deviceId(raw.address),
+    id,
     name: raw.name,
     address: raw.address,
     deviceType: type,
+    baseType,
     emoji: s.emoji,
     accent: s.accent,
     connected: true, // the scanner only returns connected devices
@@ -50,12 +83,12 @@ function enrich(raw) {
 
 function deviceLabel(d) {
   return d.batteryPercent === null
-    ? `${d.emoji} ${d.name} — battery n/a`
-    : `${d.emoji} ${d.name} — ${d.batteryPercent}%`;
+    ? `${d.emoji} ${d.name}: battery n/a`
+    : `${d.emoji} ${d.name}: ${d.batteryPercent}%`;
 }
 
-function iconFor(battery) {
-  return nativeImage.createFromBuffer(batteryIconPng(battery));
+function iconFor(battery, deviceType) {
+  return nativeImage.createFromBuffer(batteryIconPng(battery, deviceType));
 }
 
 function isLaunchAtLogin() {
@@ -103,7 +136,7 @@ function mainMenuTemplate(devices) {
 function deviceMenuTemplate(d) {
   const batt = d.batteryPercent === null ? "battery n/a" : `${d.batteryPercent}%`;
   return [
-    { label: `${d.emoji} ${d.name} — ${batt}`, enabled: false },
+    { label: `${d.emoji} ${d.name}: ${batt}`, enabled: false },
     { type: "separator" },
     { label: "Show Batnex", click: () => showWindow() },
     { label: "Refresh now", click: () => void refreshAll() },
@@ -113,10 +146,16 @@ function deviceMenuTemplate(d) {
   ];
 }
 
+function hasBattery(d) {
+  return d.batteryPercent !== null && d.batteryPercent !== undefined;
+}
+
 function updateTrays(devices) {
-  // Exactly one icon per connected device. The manager icon only exists while
-  // the device list is empty, so the app stays reachable from the tray.
-  if (devices.length === 0) {
+  // One tray icon per device that reports a battery level. Devices without
+  // battery info get no icon. The manager icon only exists while no battery
+  // icons exist, so the app stays reachable from the tray.
+  const charged = devices.filter(hasBattery).slice(0, MAX_DEVICE_TRAYS);
+  if (charged.length === 0) {
     let main = trays.get(MAIN_TRAY_ID);
     if (!main) {
       main = new Tray(iconFor(null));
@@ -124,7 +163,7 @@ function updateTrays(devices) {
       trays.set(MAIN_TRAY_ID, main);
     }
     main.setImage(iconFor(null));
-    main.setToolTip("Batnex: no connected devices");
+    main.setToolTip(devices.length ? "Batnex: no battery info" : "Batnex: no connected devices");
     main.setContextMenu(Menu.buildFromTemplate(mainMenuTemplate(devices)));
   } else {
     const main = trays.get(MAIN_TRAY_ID);
@@ -134,13 +173,13 @@ function updateTrays(devices) {
     }
   }
 
-  // One tray icon per device, each with its own battery digits + menu.
+  // One circular battery icon per device, with its own menu.
   const seen = new Set();
-  for (const d of devices.slice(0, MAX_DEVICE_TRAYS)) {
+  for (const d of charged) {
     const id = `batnex-dev-${d.id}`;
     seen.add(id);
-    const img = iconFor(d.batteryPercent);
-    const tip = d.batteryPercent === null ? `${d.name} — battery unknown` : `${d.name} — ${d.batteryPercent}%`;
+    const img = iconFor(d.batteryPercent, d.deviceType);
+    const tip = `${d.name}: ${d.batteryPercent}%`;
     let tray = trays.get(id);
     if (!tray) {
       tray = new Tray(img);
@@ -159,6 +198,12 @@ function updateTrays(devices) {
       trays.delete(id);
     }
   }
+}
+
+function applyOverride(d) {
+  const type = typeOverrides[d.id] || d.baseType || "bluetooth";
+  const s = styleFor(type);
+  return { ...d, deviceType: type, emoji: s.emoji, accent: s.accent };
 }
 
 function pushUpdate() {
@@ -303,6 +348,7 @@ app.whenReady().then(() => {
   // Auto-started launches (login item with --hidden) begin in the tray.
   const startHidden = !SELF_TEST && (process.argv.includes("--hidden") || wasOpenedAtLogin());
   if (startHidden) console.log("[app] auto-start detected, beginning hidden in tray");
+  loadOverrides();
   createWindow(!startHidden);
 
   ipcMain.handle("batnex:refresh", async () => {
@@ -310,6 +356,17 @@ app.whenReady().then(() => {
     return { devices, error: lastError };
   });
   ipcMain.handle("batnex:cached", () => ({ devices: lastDevices, error: lastError }));
+  ipcMain.handle("batnex:set-type", (_event, id, type) => {
+    if (typeof id !== "string" || !VALID_TYPES.includes(type)) {
+      return { devices: lastDevices, error: lastError };
+    }
+    typeOverrides[id] = type;
+    saveOverrides();
+    lastDevices = lastDevices.map((d) => (d.id === id ? applyOverride(d) : d));
+    updateTrays(lastDevices);
+    pushUpdate();
+    return { devices: lastDevices, error: lastError };
+  });
   ipcMain.handle("batnex:minimize", () => {
     if (win && !win.isDestroyed()) win.minimize();
     return true;

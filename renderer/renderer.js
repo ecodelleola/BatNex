@@ -32,13 +32,8 @@ const TYPE_GLYPH = {
   speaker: "speaker",
   mouse: "mouse",
   keyboard: "keyboard",
-  laptop: "laptop",
-  watch: "watch",
   controller: "controller",
   phone: "phone",
-  tv: "tv",
-  stylus: "pencil",
-  printer: "printer",
   bluetooth: "bluetooth",
 };
 
@@ -49,13 +44,8 @@ const TYPE_LABEL = {
   speaker: "Speaker",
   mouse: "Mouse",
   keyboard: "Keyboard",
-  laptop: "Laptop",
-  watch: "Wearable",
   controller: "Gamepad",
   phone: "Phone",
-  tv: "TV",
-  stylus: "Stylus",
-  printer: "Printer",
   bluetooth: "Device",
 };
 
@@ -95,11 +85,18 @@ function levelColor(p) {
 }
 
 function logoMark() {
-  return `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-    <rect x="2" y="7.5" width="16" height="9" rx="2.5" stroke="#3ddc84" stroke-width="2"/>
-    <path d="M12.6 8.4 L9.7 12.5 h2.1 L10.7 15.6 L14.3 10.9 h-2.2 L13.2 8.4 Z" fill="#3ddc84"/>
-    <rect x="18.8" y="10.2" width="2.6" height="3.6" rx="1.3" fill="#3ddc84"/>
-  </svg>`;
+  return `<img class="tb-logo" src="./logo.png" alt="Batnex logo" draggable="false" />`;
+}
+
+function typeMenuItems(d) {
+  return Object.entries(TYPE_LABEL)
+    .map(([value, label]) => `
+      <li>
+        <button class="type-item${value === d.deviceType ? " current" : ""}" data-id="${esc(d.id)}" data-type="${value}">
+          <span class="type-item-icon">${glyph(TYPE_GLYPH[value] || "bluetooth")}</span><span>${esc(label)}</span>
+        </button>
+      </li>`)
+    .join("");
 }
 
 function row(d) {
@@ -118,8 +115,11 @@ function row(d) {
   <li class="dev-card ${low ? "low" : ""}">
     <div class="tile dev-glyph" style="color:${color}">${glyph(TYPE_GLYPH[d.deviceType] || "bluetooth")}</div>
     <div class="min-w-0 flex-1">
-      <div class="dev-name truncate">${esc(d.name)}</div>
-      <div class="dev-type">${esc(TYPE_LABEL[d.deviceType] || "Device")}</div>
+      <div class="dev-name truncate" title="${esc(d.name)}">${esc(d.name)}</div>
+      <div class="dev-type">
+        <button class="type-btn" data-id="${esc(d.id)}" title="Change device type"><span>${esc(TYPE_LABEL[d.deviceType] || "Device")}</span><span class="type-chev">${hero("chevron-down")}</span></button>
+        <ul class="type-menu hidden">${typeMenuItems(d)}</ul>
+      </div>
     </div>
     <div class="shrink-0">
       <div class="dev-pct" style="color:${color}">${pctLabel}</div>
@@ -171,6 +171,20 @@ function applyPayload(payload) {
   render();
 }
 
+function closeTypeMenus() {
+  app.querySelectorAll(".type-menu").forEach((m) => m.classList.add("hidden"));
+}
+
+async function changeType(id, type) {
+  try {
+    applyPayload(await window.batnex.setType(id, type));
+  } catch (e) {
+    console.error(e);
+    lastError = String((e && e.message) || e);
+    render();
+  }
+}
+
 async function manualRefresh() {
   if (scanning) return;
   scanning = true;
@@ -189,6 +203,27 @@ async function manualRefresh() {
 
 async function init() {
   console.log("Batnex renderer ready");
+  // Type-menu interaction is delegated (rows re-render often).
+  document.addEventListener("click", (e) => {
+    const item = e.target.closest(".type-item");
+    if (item) {
+      closeTypeMenus();
+      void changeType(item.dataset.id, item.dataset.type);
+      return;
+    }
+    const btn = e.target.closest(".type-btn");
+    if (btn) {
+      const menu = btn.parentElement.querySelector(".type-menu");
+      const wasHidden = menu.classList.contains("hidden");
+      closeTypeMenus();
+      if (wasHidden) menu.classList.remove("hidden");
+      return;
+    }
+    closeTypeMenus();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") closeTypeMenus();
+  });
   render();
   window.batnex.onDevices((payload) => applyPayload(payload));
   try {

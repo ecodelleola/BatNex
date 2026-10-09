@@ -12,6 +12,8 @@ contextBridge.exposeInMainWorld("batnex", {
   minimize: () => ipcRenderer.invoke("batnex:minimize"),
   /** Close the frameless window (hides to tray). */
   close: () => ipcRenderer.invoke("batnex:close"),
+  /** Override a device's type (persisted). Returns { devices, error }. */
+  setType: (id, type) => ipcRenderer.invoke("batnex:set-type", id, type),
   /** Pushed by the main process after background scans. */
   onDevices: (cb) => ipcRenderer.on("batnex:devices", (_event, payload) => cb(payload)),
 });

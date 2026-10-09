@@ -486,6 +486,11 @@ async def with_batteries(connected, pnp):
     return devices
 
 
+# Device categories the app does not track: filtered out of every report so
+# they never appear in the window or the tray (and use no battery reads).
+EXCLUDED_TYPES = {"printer", "stylus", "tv", "watch", "laptop"}
+
+
 async def main():
     fast = "--list" in sys.argv
     gate = asyncio.Semaphore(4)
@@ -504,6 +509,10 @@ async def main():
                 )
                 cod_repr = f"{cod:#x}" if cod is not None else "none"
                 log(f"type: {c['name']} cod={cod_repr} hid={info.get('hid', [])} -> {c['deviceType']}")
+            dropped = [c["name"] for c in connected if c["deviceType"] in EXCLUDED_TYPES]
+            if dropped:
+                log(f"filtered out (unsupported types): {', '.join(dropped)}")
+            connected = [c for c in connected if c["deviceType"] not in EXCLUDED_TYPES]
             if fast:
                 devices = [
                     {**c, "battery": None, "batteryError": None, "batterySource": None,

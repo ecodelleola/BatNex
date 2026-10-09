@@ -1,6 +1,7 @@
 node_modules/
 dist/
 vendor/
+__pycache__/
 *.log
 .DS_Store
 Thumbs.db

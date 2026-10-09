@@ -40,6 +40,13 @@ html, body {
   color: #dfe5e1;
 }
 
+.tb-logo {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  -webkit-user-drag: none;
+}
+
 .tb-btns {
   display: flex;
   align-items: stretch;
@@ -186,6 +193,100 @@ html, body {
   font-size: 16px;
   color: #8a938e;
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dev-type {
+  position: relative;
+  margin-top: 2px;
+}
+
+.type-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: 16px;
+  color: #8a938e;
+  cursor: pointer;
+}
+
+.type-btn:hover {
+  color: #eef2f0;
+}
+
+.type-chev {
+  display: inline-flex;
+  opacity: 0.55;
+}
+
+.type-chev svg {
+  width: 12px;
+  height: 12px;
+}
+
+.type-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 30;
+  min-width: 190px;
+  max-height: 224px;
+  overflow-y: auto;
+  margin: 6px 0 0;
+  padding: 6px;
+  list-style: none;
+  background: #121816;
+  border: 1px solid #2a3630;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+}
+
+.type-menu::-webkit-scrollbar {
+  width: 8px;
+}
+
+.type-menu::-webkit-scrollbar-thumb {
+  background: #223028;
+  border-radius: 8px;
+}
+
+.type-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #c3ccc7;
+  cursor: pointer;
+  text-align: left;
+}
+
+.type-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.type-item.current {
+  color: #3ddc84;
+}
+
+.type-item-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.type-item-icon svg {
+  width: 18px;
+  height: 18px;
 }
 
 .dev-pct {

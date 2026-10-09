@@ -13,6 +13,7 @@ const NEEDED = [
   "arrow-path",
   "minus",
   "x-mark",
+  "chevron-down",
 ];
 
 const dir = path.join(__dirname, "..", "node_modules", "heroicons", "24", "outline");
