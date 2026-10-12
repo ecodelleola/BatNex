@@ -14,9 +14,9 @@ Bluetooth devices** — in a compact window and as **live system-tray icons**
   connection state; nearby strangers never appear.
 - **Battery from the same source as Settings** — Windows' own per-device
   battery cache first (instant), direct BLE Battery Service reads as fallback.
-- **Per-device tray icons** — the device glyph in its level color
-  (100–80 green, 79–50 blue, 49–20 yellow, 19–0 red), with `Name: 85%`
-  tooltips. Devices without a reading get no tray icon.
+- **Per-device tray icons** — the battery percentage as large digits in its
+  level color (100–80 green, 79–50 blue, 49–20 yellow, 19–0 red), with
+  `Name: 85%` tooltips. Devices without a reading get no tray icon.
 - **Auto-detect** — connections and disconnections appear on their own
   (15s lightweight poll, battery reads only on change); no refresh needed.
 - **Fixable device types** — the type label is a dropdown; your pick
@@ -108,7 +108,7 @@ renderer/
 lib/
   bluetooth.js        # spawns the scanner (bundled → system Python), parses JSON
   classify.js         # emoji/accent style per device type
-  trayIcon.js         # vector device-glyph tray icons (pure-JS PNG)
+  trayIcon.js         # battery-number tray icons (pure-JS PNG)
 scripts/
   bt_battery.py       # paired → connected → battery/type report (JSON)
   fetch_python.py     # one-time download of the private runtime into vendor/
